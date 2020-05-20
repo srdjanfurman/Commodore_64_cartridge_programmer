@@ -12,6 +12,7 @@ from colorama import init
 from colors import Color
 from device29c0x0_read import device_29c0x0_read
 from device29c0x0_write import device_29c0x0_write
+from com_port_devices import com_port_devices
 from set_serial import set_serial
 from twos_complement_checksum import twos_complement_chksum
 
@@ -32,20 +33,44 @@ def main(binary_file):
 
     while 1:
         while 1:
-            print('** Choose operation:')
+            print('** Choose operation **')
             print('p - Program device')
             print('q - Quit program')
+
             try:
-                in_selection = raw_input('>> ')
+                operation_selection = raw_input('>> ')
             except Exception, e:  # Don't exit - warn.
                 print(color.TEXT_RED + '\nError: ' + str(e) + color.TEXT_GREEN)
                 print('\r')
                 break
             else:
-                if in_selection == 'p':
-                    # Set serial ports and list available devices.
-                    print('** List of available devices:')
-                    ser = set_serial()
+                if operation_selection == 'p':
+
+                    print('\n** Select target device number from the list **')
+                    com_port_devices_list = com_port_devices()
+
+                    idx = 0
+                    devices = dict()
+
+                    for com_port_device in com_port_devices_list:
+                        idx += 1
+                        devices[idx] = com_port_device[0]
+                        print('{0}. {1}'.format(idx, com_port_device[1]))
+
+                    try:
+                        device_selection = int(raw_input('>> '))
+                    except Exception, e:
+                        print(color.TEXT_YELLOW + 'Target device not found. ({})\n'.format(e) + color.TEXT_GREEN)
+                        break
+                    else:
+                        if device_selection in devices.keys():
+                            com_port = devices[device_selection]
+                        else:
+                            print(color.TEXT_YELLOW + 'Wrong selection.\n' + color.TEXT_GREEN)
+                            break
+
+                    ser = set_serial(com_port)
+
                     try:
                         ser.open()
                         # Flush input buffer discarding all it's contents.
@@ -53,10 +78,8 @@ def main(binary_file):
                         # discarding all in the buffer.
                         ser.flushInput()
                         ser.flushOutput()
-                    except Exception, e:  # Port already open (port in use).
-                        print(color.TEXT_RED +
-                              '\nError opening serial port: ' + str(e) +
-                              color.TEXT_GREEN)
+                    except Exception, e:  # Port already opened (port in use).
+                        print(color.TEXT_RED + 'Error opening serial port: {}\n'.format(str(e)) + color.TEXT_GREEN)
                         print('\r')
                         break  # Don't exit - warn.
 
@@ -81,16 +104,12 @@ def main(binary_file):
                     print('Loaded input file: %s.' % bin_file)
 
                     # Program device.
-                    print(color.TEXT_MAGENTA +
-                          'Program device.\n' + color.TEXT_GREEN)
-                    bin_str_file_length = device_29c0x0_write(ser, bin_str,
-                                                              color)
+                    print(color.TEXT_MAGENTA + 'Program device.\n' + color.TEXT_GREEN)
+                    bin_str_file_length = device_29c0x0_write(ser, bin_str, color)
 
                     # Verify device.
-                    print(color.TEXT_MAGENTA +
-                          'Verify device.\n' + color.TEXT_GREEN)
-                    calculated_checksum = \
-                        device_29c0x0_read(ser, bin_str_file_length, color)
+                    print(color.TEXT_MAGENTA + 'Verify device.\n' + color.TEXT_GREEN)
+                    calculated_checksum = device_29c0x0_read(ser, bin_str_file_length, color)
 
                     # Match program checksums.
                     if calculated_checksum == original_chksum:
@@ -100,15 +119,12 @@ def main(binary_file):
 
                     ser.close()
 
-                elif in_selection == 'q':
-                    print(color.TEXT_WHITE +
-                          'Thank you for using the 29C020(040) programmer.' +
-                          color.TEXT_RESET_ALL)
+                elif operation_selection == 'q':
+                    print(color.TEXT_WHITE + 'Thank you for using the 29C020(040) programmer.' + color.TEXT_RESET_ALL)
                     time.sleep(0.2)
                     sys.exit()
                 else:
-                    print(color.TEXT_YELLOW +
-                          'Wrong selection.\n' + color.TEXT_GREEN)
+                    print(color.TEXT_YELLOW + 'Wrong selection.\n' + color.TEXT_GREEN)
 
 
 if __name__ == '__main__':

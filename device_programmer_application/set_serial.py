@@ -6,13 +6,11 @@ Created on Aug 31, 2014
 
 import serial
 
-from device_list_and_select import device_list_and_select
-
 
 # Set host serial device parameters and list available devices.
-def set_serial():
+def set_serial(com_port):
     s = serial.Serial()
-    s.port = 'COM' + device_list_and_select()
+    s.port = com_port
     s.baudrate = 19200  # 115200
     s.bytesize = serial.EIGHTBITS
     s.parity = serial.PARITY_NONE
